@@ -2,7 +2,7 @@
 pub enum Instruction {
     MovImm { reg: u8, imm: u16 },      // 0x01
     Mov { src_reg: u8, dest_reg: u8 }, // 0x02
-    LoadReg { reg: u8, addr: u16 },    // 0x03
+    Load { reg: u8, addr: u16 },       // 0x03
     Store { addr: u16, reg: u8 },      // 0x04
     Add { dest_reg: u8, src_reg: u8 }, // 0x05
     Sub { dest_reg: u8, src_reg: u8 }, // 0x06

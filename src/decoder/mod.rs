@@ -49,7 +49,7 @@ pub fn decode(bytes: &[u8], pc: u16) -> Result<DecodedInstruction, String> {
             let addr = ((addr_hi as u16) << 8) | (addr_lo as u16);
 
             Ok(DecodedInstruction {
-                instr: Instruction::LoadReg { reg, addr },
+                instr: Instruction::Load { reg, addr },
                 length: 4,
             })
         }
