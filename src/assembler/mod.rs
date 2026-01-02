@@ -2,26 +2,15 @@ use crate::instructions;
 use crate::instructions::Instruction;
 use std::collections::HashMap;
 use std::env;
+use std::fmt::format;
 use std::fs;
 use std::path::Path;
 
-pub fn assemble() -> Result<Vec<u8>, String> {
+pub fn assemble(src: &str) -> Result<Vec<u8>, String> {
     // --snip--
     let mut bytecode: Vec<u8> = Vec::new();
-    let args: Vec<String> = env::args().collect();
-
-    let file_path = Path::new(&args[1]);
-
-    match file_path.extension().and_then(|e| e.to_str()) {
-        Some("risa") | Some("txt") => {}
-        _ => {
-            eprintln!("Invalid file type");
-            return Err(format!("Cannot find file: {}", file_path.to_string_lossy()));
-        }
-    }
-
-    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
-    let tokens: Vec<Vec<String>> = tokenize(contents);
+    let contents = src;
+    let tokens: Vec<Vec<String>> = tokenize(contents.to_string());
 
     let mut pc: u16 = 0;
     let mut label_table: HashMap<String, u16> = HashMap::new();
@@ -43,7 +32,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
 
         // instruction
         let instr = &line_tokens[idx];
-        pc += find_instr_length(instr.to_string());
+        pc += find_instr_length(instr.to_string())?;
     }
 
     // emit bytecode
@@ -86,7 +75,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x02);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("mov expects 2 operands".into());
                 }
 
                 // push dest register
@@ -102,7 +91,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x03);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("load expects 2 operands".into());
                 }
 
                 // push register
@@ -122,7 +111,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x04);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("store expects 2 operands".into());
                 }
 
                 // push address
@@ -142,7 +131,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x05);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("add expects 2 operands".into());
                 }
 
                 // push dest register
@@ -158,7 +147,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x06);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("sub expects 2 operands".into());
                 }
 
                 // push dest register
@@ -174,7 +163,7 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(0x07);
 
                 if line_tokens.len() - idx != 3 {
-                    return Err("movimm expects 2 operands".into());
+                    return Err("cmp expects 2 operands".into());
                 }
 
                 // push dest register
@@ -186,30 +175,63 @@ pub fn assemble() -> Result<Vec<u8>, String> {
                 bytecode.push(reg_b);
             }
 
-            _ => eprintln!("ERROR: Unknown Operand: {}", instr),
+            "jmp" | "jmpz" | "jmpnz" => {
+                let opcode = match instr.as_str() {
+                    "jmp" => 0x08,
+                    "jmpz" => 0x09,
+                    "jmpnz" => 0x0A,
+                    _ => unreachable!(),
+                };
+
+                bytecode.push(opcode);
+
+                if line_tokens.len() - idx != 2 {
+                    return Err("jump operations expects 1 operand".into());
+                }
+
+                let target = &line_tokens[idx + 1];
+                let addr: u16 = if let Ok(num) = parse_u16(target) {
+                    num
+                } else {
+                    *label_table
+                        .get(target)
+                        .ok_or("jmp operand references label that does not exist")?
+                };
+
+                let addr_hi: u8 = (addr >> 8) as u8;
+                let addr_lo: u8 = addr as u8;
+
+                bytecode.push(addr_hi);
+                bytecode.push(addr_lo);
+            }
+
+            "halt" => {
+                bytecode.push(0xFF);
+            }
+
+            _ => return Err(format!("ERROR: Unknown Operand: {}", instr)),
         }
     }
 
     Ok(bytecode)
 }
 
-fn find_instr_length(mut instruction: String) -> u16 {
+fn find_instr_length(mut instruction: String) -> Result<u16, String> {
     instruction = instruction.to_lowercase();
     match instruction.as_str() {
-        "movimm" => return 4,
-        "mov" => return 3,
-        "load" => return 4,
-        "store" => return 4,
-        "add" => return 3,
-        "sub" => return 3,
-        "cmp" => return 3,
-        "jmp" => return 3,
-        "jmpz" => return 3,
-        "jmpnz" => return 3,
-        "halt" => return 1,
-        _ => eprintln!("ERROR: Unknown Operand: {}", instruction),
+        "movimm" => Ok(4),
+        "mov" => Ok(3),
+        "load" => Ok(4),
+        "store" => Ok(4),
+        "add" => Ok(3),
+        "sub" => Ok(3),
+        "cmp" => Ok(3),
+        "jmp" => Ok(3),
+        "jmpz" => Ok(3),
+        "jmpnz" => Ok(3),
+        "halt" => Ok(1),
+        _ => return Err(format!("ERROR: Unknown Operand: {}", instruction)),
     }
-    return 0;
 }
 
 fn parse_register(token: &str) -> Result<u8, String> {
