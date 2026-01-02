@@ -59,8 +59,6 @@ impl VM {
         // need to be &mut self to borrow the vm instnance and mutate it
         match decoded {
             Instruction::MovImm { reg, imm } => {
-                // set zero flag
-
                 // out of bounds check
                 if reg >= 0x10 {
                     eprintln!("Error: Register out of bounds");

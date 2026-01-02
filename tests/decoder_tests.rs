@@ -78,11 +78,11 @@ fn decode_load_reg() {
     let decoded = decode(&bytes, 0).expect("decode failed");
 
     match decoded.instr {
-        Instruction::LoadReg { reg, addr } => {
+        Instruction::Load { reg, addr } => {
             assert_eq!(reg, 2);
             assert_eq!(addr, 0x1234);
         }
-        _ => panic!("Expected LoadReg"),
+        _ => panic!("Expected Load"),
     }
 
     assert_eq!(decoded.length, 4);
