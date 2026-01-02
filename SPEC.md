@@ -22,8 +22,8 @@
 
 ## 3. Memory Layout
 - Memory is a flat, linear, byte-addressed array
-- Total size: 65,536 bytes
-- Addresses range from 0x0000 to 0xFFFF
+- Max addressable memory: 4,096 bytes
+- Valid address range: 0x0000–0x0FFF
 
 ### 3.1 - Word Access
 - A word = 16 bits (2 bytes)
@@ -74,7 +74,7 @@ Register `reg` is set to the 16-bit immediate value:
 ```R[reg] ← imm```
 
 **Flags Affected:**  
-- **Zero (Z):** Set if the loaded immediate equals 0.  
+- **Zero (Z):** Unaffected.  
 - **Carry (C):** Unaffected.
 
 **Example Encoding:**  
@@ -117,7 +117,7 @@ Copies the value of R7 into R4.
 **Category:** Data Movement
 
 **Description:**  
-Loads a 16-bit value from memory into one of the 16 general-purpose registers (R0–R15).
+Loads a 16-bit value from memory into one of the 16 general-purpose registers (R0–R15). Invalid memory accesses halt execution.
 
 **Operands:**  
 - **Register (1 byte):** Index from 0–15 representing R0–R15.  
@@ -131,7 +131,7 @@ Loads a 16-bit value from memory into one of the 16 general-purpose registers (R
 [03] [register] [address_hi] [address_lo]
 
 **Execution Semantics:**  
-```R[register] ← MEM[address]]```
+```R[register] ← MEM[address]```
 
 **Flags Affected:**  
 - **Zero (Z):** Set if the copied value equals 0.  
@@ -147,7 +147,7 @@ Copies the value from memory addres 0x1234 into R4.
 **Category:** Data Movement
 
 **Description:**  
-Loads a 16-bit value from a register (R0-R15) into memory.
+Loads a 16-bit value from a register (R0-R15) into memory. Invalid memory accesses halt execution.
 
 **Operands:**  
 - **Address (2 bytes):** Memory address from which to load the value.
