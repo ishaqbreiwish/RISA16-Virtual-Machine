@@ -4,6 +4,7 @@ RISA16 is a custom 16-bit virtual machine implemented in Rust.
 The project includes a complete toolchain consisting of a formally defined instruction set architecture (ISA), a two-pass assembler, a bytecode decoder, and a deterministic execution engine.
 
 The project focuses on correctness, safety, and testability, and was built from first principles to model a realistic virtual machine architecture at a small scale.
+
 ---
 
 ## Project Overview
@@ -100,6 +101,32 @@ Execution halts explicitly via the `halt` instruction or on invalid operations.
 
 ---
 
+## Running the Project
+
+### Build
+
+```bash
+cargo build
+```
+
+### Run Tests
+
+```bash
+cargo test
+```
+
+### Assemble and Run a Program
+
+Assembly programs can be written using the RISA16 instruction set defined in `SPEC.md`.
+
+The project includes a command-line entry point that assembles a source file and executes it in the virtual machine:
+
+```bash
+cargo run -- path/to/program.risa
+```
+
+---
+
 ## Example Program
 
 ```asm
@@ -153,6 +180,4 @@ cargo test
 ## Status
 
 The RISA16 virtual machine, assembler, and decoder are complete and fully tested.
-In the future, I want to extend it to support graphics.
-
----
+Future extensions may include a simple graphics subsystem.
