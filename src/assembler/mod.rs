@@ -1,10 +1,6 @@
 use crate::instructions;
 use crate::instructions::Instruction;
 use std::collections::HashMap;
-use std::env;
-use std::fmt::format;
-use std::fs;
-use std::path::Path;
 
 pub fn assemble(src: &str) -> Result<Vec<u8>, String> {
     // --snip--

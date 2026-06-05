@@ -16,6 +16,8 @@ pub struct VM {
     pub zero_flag: bool,
     pub carry_flag: bool,
     pub state: State,
+    pub instruction_count: u64,
+    pub opcode_counts: [u64; 256],
 }
 
 impl VM {
@@ -26,6 +28,8 @@ impl VM {
             zero_flag: false,
             carry_flag: false,
             state: State::RUNNING,
+            instruction_count: 0,
+            opcode_counts: [0; 256],
         }
     }
 
@@ -53,6 +57,8 @@ impl VM {
                 self.state = State::HALTED
             }
         }
+        self.instruction_count += 1;
+        self.opcode_counts[self.memory.data[self.cpu.pc as usize] as usize] += 1;
     }
 
     pub fn execute(&mut self, decoded: Instruction) {
