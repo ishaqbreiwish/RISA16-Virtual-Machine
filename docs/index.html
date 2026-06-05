@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RISA-16 Playground</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #1e1e1e;
+      --bg-raised:   #252526;
+      --bg-pane-hdr: #2d2d2d;
+      --border:      #3e3e42;
+      --text:        #d4d4d4;
+      --text-head:   #cccccc;
+      --text-muted:  #858585;
+      --text-dim:    #4a4a4a;
+      --reg-name:    #9cdcfe;
+      --reg-val:     #b5cea8;
+      --flag-on:     #4ec9b0;
+      --stat-val:    #ce9178;
+      --error:       #f44747;
+    }
+
+    body.light {
+      --bg:          #f5f0e8;
+      --bg-raised:   #ede8df;
+      --bg-pane-hdr: #e5dfd5;
+      --border:      #cdc7bc;
+      --text:        #2c2720;
+      --text-head:   #3a342c;
+      --text-muted:  #8a8078;
+      --text-dim:    #b8b0a5;
+      --reg-name:    #4a7fa5;
+      --reg-val:     #4e7c4e;
+      --flag-on:     #3d8c7a;
+      --stat-val:    #a05c2a;
+      --error:       #b83232;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    header {
+      height: 46px;
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-head);
+      letter-spacing: 0.02em;
+      margin-right: 6px;
+    }
+
+    #status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      padding: 3px 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .header-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+    #theme-toggle { margin-left: auto; }
+
+    /* modals */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal-box {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 28px 32px;
+      width: 90%;
+      max-width: 440px;
+      position: relative;
+    }
+
+    .modal-box.wide { max-width: 680px; max-height: 80vh; display: flex; flex-direction: column; }
+
+    .modal-box h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-head);
+      margin-bottom: 14px;
+    }
+
+    .modal-box p, .modal-box li {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: none;
+      font-size: 16px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--text); }
+
+    .spec-body {
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .spec-body h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 18px 0 8px;
+    }
+
+    .spec-body h3:first-child { margin-top: 0; }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .spec-table th {
+      text-align: left;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      padding: 4px 10px 6px 0;
+      font-weight: normal;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .spec-table td {
+      padding: 5px 10px 5px 0;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .spec-table tr:last-child td { border-bottom: none; }
+
+    .spec-table td:first-child { color: var(--reg-name); white-space: nowrap; }
+    .spec-table td:nth-child(2) { color: var(--stat-val); }
+
+    .spec-kv { display: flex; flex-direction: column; gap: 5px; }
+    .spec-kv-row { display: flex; gap: 12px; font-size: 12px; }
+    .spec-kv-row .k { color: var(--text-muted); min-width: 130px; }
+    .spec-kv-row .v { color: var(--text); }
+
+    /* panes */
+    .panes { flex: 1; display: flex; overflow: hidden; }
+
+    .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .pane + .pane { border-left: 1px solid var(--border); }
+
+    .pane-header {
+      height: 30px;
+      background: var(--bg-pane-hdr);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--bg);
+      color: var(--text);
+      border: none;
+      outline: none;
+      padding: 14px 16px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.65;
+      resize: none;
+      tab-size: 4;
+      caret-color: var(--text-muted);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    textarea::placeholder { color: var(--text-dim); }
+
+    .output { flex: 1; padding: 14px 16px; overflow-y: auto; font-size: 13px; line-height: 1.65; }
+
+    .placeholder { color: var(--text-dim); }
+    .error { color: var(--error); }
+
+    .section { margin-bottom: 20px; }
+
+    .section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .registers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+
+    .reg {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 8px;
+      background: var(--bg-raised);
+      border-radius: 2px;
+    }
+
+    .reg-name  { color: var(--reg-name); }
+    .reg-value { color: var(--reg-val); }
+    .reg-zero  { color: var(--text-dim); }
+
+    .flags { display: flex; gap: 20px; }
+    .flag { display: flex; gap: 8px; align-items: center; }
+    .flag-name { color: var(--reg-name); }
+    .flag-on   { color: var(--flag-on); }
+    .flag-off  { color: var(--text-dim); }
+
+    .stats { color: var(--text-muted); }
+    .stats .highlight { color: var(--stat-val); }
+    .halted { color: var(--flag-on); }
+    .capped { color: var(--stat-val); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RISA-16 Playground</h1>
+  <span id="status"></span>
+  <button class="header-btn" id="spec-btn" type="button">ISA Spec</button>
+  <a class="header-btn" href="https://github.com/ishaqbreiwish/RISA16-Virtual-Machine" target="_blank" rel="noopener noreferrer">GitHub</a>
+  <button class="header-btn" id="about-btn" type="button">About</button>
+  <button class="header-btn" id="theme-toggle" type="button">light</button>
+</header>
+
+<!-- ISA Spec modal -->
+<div class="modal-backdrop" id="spec-modal">
+  <div class="modal-box wide">
+    <button class="modal-close" id="spec-close" type="button">✕</button>
+    <h2>ISA Specification</h2>
+    <div class="spec-body">
+      <h3>Architecture</h3>
+      <div class="spec-kv">
+        <div class="spec-kv-row"><span class="k">Register size</span><span class="v">16-bit</span></div>
+        <div class="spec-kv-row"><span class="k">Registers</span><span class="v">R0–R15 (general purpose)</span></div>
+        <div class="spec-kv-row"><span class="k">Flags</span><span class="v">Zero (Z), Carry (C)</span></div>
+        <div class="spec-kv-row"><span class="k">Memory</span><span class="v">4,096 bytes · 0x0000–0x0FFF</span></div>
+        <div class="spec-kv-row"><span class="k">Endianness</span><span class="v">Big-endian</span></div>
+        <div class="spec-kv-row"><span class="k">Execution</span><span class="v">Fetch → Decode → Execute</span></div>
+      </div>
+
+      <h3>Instruction Set</h3>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Mnemonic</th>
+            <th>Opcode</th>
+            <th>Operands</th>
+            <th>Bytes</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>movimm</td><td>0x01</td><td>reg, imm16</td><td>4</td><td>—</td></tr>
+          <tr><td>mov</td><td>0x02</td><td>dest, src</td><td>3</td><td>Z</td></tr>
+          <tr><td>load</td><td>0x03</td><td>reg, addr</td><td>4</td><td>Z</td></tr>
+          <tr><td>store</td><td>0x04</td><td>addr, reg</td><td>4</td><td>—</td></tr>
+          <tr><td>add</td><td>0x05</td><td>dest, src</td><td>3</td><td>Z C</td></tr>
+          <tr><td>sub</td><td>0x06</td><td>dest, src</td><td>3</td><td>Z C</td></tr>
+          <tr><td>cmp</td><td>0x07</td><td>regA, regB</td><td>3</td><td>Z C</td></tr>
+          <tr><td>jmp</td><td>0x08</td><td>addr</td><td>3</td><td>—</td></tr>
+          <tr><td>jmpz</td><td>0x09</td><td>addr</td><td>3</td><td>—</td></tr>
+          <tr><td>jmpnz</td><td>0x0A</td><td>addr</td><td>3</td><td>—</td></tr>
+          <tr><td>halt</td><td>0xFF</td><td>—</td><td>1</td><td>—</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Assembler Syntax</h3>
+      <div class="spec-kv">
+        <div class="spec-kv-row"><span class="k">Registers</span><span class="v">r0 – r15</span></div>
+        <div class="spec-kv-row"><span class="k">Immediates</span><span class="v">decimal or 0x hex</span></div>
+        <div class="spec-kv-row"><span class="k">Labels</span><span class="v">name: on its own or same line</span></div>
+        <div class="spec-kv-row"><span class="k">Comments</span><span class="v">// to end of line</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- About modal -->
+<div class="modal-backdrop" id="about-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="about-close" type="button">✕</button>
+    <h2>About RISA-16</h2>
+    <p>The motivation behind this was to make a virtual machine for educational purposes — to play around with, have fun with, and learn how these things work. RISA-16 is a simple 16-bit ISA with 16 general-purpose registers, a small memory space, and a handful of instructions to keep things approachable.</p>
+  </div>
+</div>
+
+<div class="panes">
+  <div class="pane">
+    <div class="pane-header">Assembly</div>
+    <textarea id="editor" spellcheck="false" placeholder="Write RISA-16 assembly here..."></textarea>
+  </div>
+  <div class="pane">
+    <div class="pane-header">Output</div>
+    <div class="output" id="output">
+      <span class="placeholder">Run some assembly to see output.</span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // wire up all UI immediately — before WASM loads
+  const toggle    = document.getElementById('theme-toggle');
+  const aboutBtn  = document.getElementById('about-btn');
+  const aboutModal= document.getElementById('about-modal');
+  const aboutClose= document.getElementById('about-close');
+  const specBtn   = document.getElementById('spec-btn');
+  const specModal = document.getElementById('spec-modal');
+  const specClose = document.getElementById('spec-close');
+
+  const stored = localStorage.getItem('risa-theme');
+  if (stored === 'light') applyLight();
+
+  toggle.addEventListener('click', () => {
+    if (document.body.classList.contains('light')) {
+      document.body.classList.remove('light');
+      toggle.textContent = 'light';
+      localStorage.setItem('risa-theme', 'dark');
+    } else {
+      applyLight();
+    }
+  });
+
+  function applyLight() {
+    document.body.classList.add('light');
+    toggle.textContent = 'dark';
+    localStorage.setItem('risa-theme', 'light');
+  }
+
+  function openModal(m)  { m.classList.add('open'); }
+  function closeModal(m) { m.classList.remove('open'); }
+
+  aboutBtn.addEventListener('click',  () => openModal(aboutModal));
+  aboutClose.addEventListener('click', () => closeModal(aboutModal));
+  aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeModal(aboutModal); });
+
+  specBtn.addEventListener('click',  () => openModal(specModal));
+  specClose.addEventListener('click', () => closeModal(specModal));
+  specModal.addEventListener('click', e => { if (e.target === specModal) closeModal(specModal); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal(aboutModal); closeModal(specModal); }
+  });
+
+  // now load WASM
+  import init, { run } from './pkg/risa16.js';
+  await init();
+
+  const editor = document.getElementById('editor');
+  const output = document.getElementById('output');
+  const status = document.getElementById('status');
+
+  editor.value =
+`movimm r0 10
+movimm r1 1
+movimm r2 0
+
+loop:
+    sub r0 r1
+    cmp r0 r2
+    jmpnz loop
+    halt`;
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function render(src) {
+    if (!src.trim()) {
+      output.innerHTML = '<span class="placeholder">Write some assembly to see output.</span>';
+      status.textContent = '';
+      return;
+    }
+
+    let result;
+    try {
+      result = JSON.parse(run(src));
+    } catch (e) {
+      output.innerHTML = `<div class="error">Internal error: ${escapeHtml(String(e))}</div>`;
+      return;
+    }
+
+    if (result.error) {
+      output.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+      status.textContent = 'error';
+      return;
+    }
+
+    const regsHtml = Object.entries(result.registers).map(([name, val]) => {
+      const hex = '0x' + val.toString(16).padStart(4, '0').toUpperCase();
+      const cls = val === 0 ? 'reg-zero' : 'reg-value';
+      return `<div class="reg"><span class="reg-name">${name}</span><span class="${cls}">${hex}</span></div>`;
+    }).join('');
+
+    const zFlag = result.zero_flag;
+    const cFlag = result.carry_flag;
+
+    output.innerHTML = `
+      <div class="section">
+        <div class="section-title">Registers</div>
+        <div class="registers">${regsHtml}</div>
+      </div>
+      <div class="section">
+        <div class="section-title">Flags</div>
+        <div class="flags">
+          <div class="flag">
+            <span class="flag-name">zero</span>
+            <span class="${zFlag ? 'flag-on' : 'flag-off'}">${zFlag ? '1' : '0'}</span>
+          </div>
+          <div class="flag">
+            <span class="flag-name">carry</span>
+            <span class="${cFlag ? 'flag-on' : 'flag-off'}">${cFlag ? '1' : '0'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Execution</div>
+        <div class="stats">
+          <span class="highlight">${result.instruction_count.toLocaleString()}</span> instructions
+          &nbsp;·&nbsp;
+          ${result.halted
+            ? '<span class="halted">halted</span>'
+            : '<span class="capped">step limit reached</span>'}
+        </div>
+      </div>
+    `;
+
+    status.textContent = `${result.instruction_count.toLocaleString()} instructions`;
+  }
+
+  editor.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.slice(0, start) + '    ' + editor.value.slice(end);
+      editor.selectionStart = editor.selectionEnd = start + 4;
+      clearTimeout(timer);
+      timer = setTimeout(() => render(editor.value), 300);
+    }
+  });
+
+  let timer;
+  editor.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => render(editor.value), 300);
+  });
+
+  render(editor.value);
+</script>
+
+</body>
+</html>

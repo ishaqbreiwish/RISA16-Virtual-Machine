@@ -1,0 +1,15 @@
+{
+  "name": "risa16",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "risa16_bg.wasm",
+    "risa16.js",
+    "risa16.d.ts"
+  ],
+  "main": "risa16.js",
+  "types": "risa16.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
