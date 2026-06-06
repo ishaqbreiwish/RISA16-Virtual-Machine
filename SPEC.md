@@ -25,13 +25,28 @@
 - Max addressable memory: 4,096 bytes
 - Valid address range: 0x0000–0x0FFF
 
-### 3.1 - Word Access
+### 3.1 - Memory Map
+
+| Region         | Address Range   | Size      | Purpose                        |
+| -------------- | --------------- | --------- | ------------------------------ |
+| Program / RAM  | 0x0000–0x0BFF   | 3,072 B   | Code and general-purpose data  |
+| Framebuffer    | 0x0C00–0x0FFF   | 1,024 B   | Display memory (32×32 pixels)  |
+
+### 3.2 - Framebuffer Region
+- Addresses `0x0C00–0x0FFF` are **memory-mapped display memory**
+- Each byte is one grayscale pixel (0 = black, 255 = white)
+- The display is 32 columns × 32 rows, row-major order
+- Pixel at column `x`, row `y`: address `0x0C00 + (y * 32) + x`
+- STORE instructions that target this region write to both RAM and the framebuffer simultaneously
+- Programs must not use this region for general data storage
+
+### 3.3 - Word Access
 - A word = 16 bits (2 bytes)
 - Multi-byte values are stored in big-endian order
 - High byte at `address`
 - Low byte at `address + 1`
 
-### 3.2 - Alignment
+### 3.4 - Alignment
 - LOAD and STORE access two consecutive bytes
 - Misaligned accesses are allowed (no traps)
 - Behavior is deterministic but not optimized
@@ -335,7 +350,43 @@ If the Zero flag is set, the program counter is updated:
 `09 00 20`
 Jumps to address `0x0020` if the Zero flag is set.
 
-### **5.10 – Jump if Not Zero**
+### **5.10 – Draw Pixel**
+
+**Opcode:** `0x0B`
+**Category:** Graphics
+
+**Description:**
+Writes a pixel to the framebuffer at the position given by two registers, with a brightness value supplied as an 8-bit immediate. The framebuffer is the 32×32 display region at `0x0C00–0x0FFF`.
+
+**Operands:**
+
+- **reg_x (1 byte):** Register holding the column (0–31).
+- **reg_y (1 byte):** Register holding the row (0–31).
+- **imm8 (1 byte):** Immediate brightness value (0 = black, 255 = white).
+
+**Instruction Length:**
+4 bytes
+(1 opcode + 1 reg_x + 1 reg_y + 1 imm8)
+
+**Binary Format:**
+[0B] [reg_x] [reg_y] [imm8]
+
+**Execution Semantics:**
+```
+FRAMEBUFFER[(R[reg_y] * 32) + R[reg_x]] = imm8
+```
+Halts if `R[reg_x] >= 32` or `R[reg_y] >= 32`.
+
+**Flags Affected:**
+
+- **Zero (Z):** Unaffected.
+- **Carry (C):** Unaffected.
+
+**Example Encoding:**
+`0B 00 01 FF`
+Draws a white pixel (255) at column R0, row R1.
+
+### **5.11 – Jump if Not Zero**
 
 **Opcode:** `0x0A`
 **Category:** Control Flow
@@ -399,16 +450,17 @@ Halts program execution.
 
 ## 6. Summary Table
 
-| Instruction Name           | Opcode | Operands                    | Instruction Length |
-| -------------------------- | ------ | --------------------------- | ------------------ |
-| Move Immediate to Register | 0x01   | reg (1B), imm16 (2B)        | 4 bytes            |
-| Move Register to Register  | 0x02   | dest_reg (1B), src_reg (1B) | 3 bytes            |
-| Load to Register           | 0x03   | reg (1B), address (2B)      | 4 bytes            |
-| Store from Register        | 0x04   | address (2B), reg (1B)      | 4 bytes            |
-| Add Register to Register   | 0x05   | dest_reg (1B), src_reg (1B) | 3 bytes            |
-| Subtract Register          | 0x06   | dest_reg (1B), src_reg (1B) | 3 bytes            |
-| Compare Registers          | 0x07   | reg_a (1B), reg_b (1B)      | 3 bytes            |
-| Unconditional Jump         | 0x08   | address (2B)                | 3 bytes            |
-| Jump if Zero               | 0x09   | address (2B)                | 3 bytes            |
-| Jump if Not Zero           | 0x0A   | address (2B)                | 3 bytes            |
-| Halt Execution             | 0xFF   | none                        | 1 byte             |
+| Instruction Name           | Opcode | Operands                           | Instruction Length |
+| -------------------------- | ------ | ---------------------------------- | ------------------ |
+| Move Immediate to Register | 0x01   | reg (1B), imm16 (2B)               | 4 bytes            |
+| Move Register to Register  | 0x02   | dest_reg (1B), src_reg (1B)        | 3 bytes            |
+| Load to Register           | 0x03   | reg (1B), address (2B)             | 4 bytes            |
+| Store from Register        | 0x04   | address (2B), reg (1B)             | 4 bytes            |
+| Add Register to Register   | 0x05   | dest_reg (1B), src_reg (1B)        | 3 bytes            |
+| Subtract Register          | 0x06   | dest_reg (1B), src_reg (1B)        | 3 bytes            |
+| Compare Registers          | 0x07   | reg_a (1B), reg_b (1B)             | 3 bytes            |
+| Unconditional Jump         | 0x08   | address (2B)                       | 3 bytes            |
+| Jump if Zero               | 0x09   | address (2B)                       | 3 bytes            |
+| Jump if Not Zero           | 0x0A   | address (2B)                       | 3 bytes            |
+| Draw Pixel                 | 0x0B   | reg_x (1B), reg_y (1B), imm8 (1B)   | 4 bytes            |
+| Halt Execution             | 0xFF   | none                               | 1 byte             |

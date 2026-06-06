@@ -141,6 +141,18 @@ pub fn decode(bytes: &[u8], pc: u16) -> Result<DecodedInstruction, String> {
             })
         }
 
+        0x0B => {
+            // Draw: reg_x (1B), reg_y (1B), imm8 (1B)
+            let reg_x = *bytes.get(pc + 1).ok_or("Missing reg_x byte")?;
+            let reg_y = *bytes.get(pc + 2).ok_or("Missing reg_y byte")?;
+            let imm   = *bytes.get(pc + 3).ok_or("Missing imm byte")?;
+
+            Ok(DecodedInstruction {
+                instr: Instruction::Draw { reg_x, reg_y, imm },
+                length: 4,
+            })
+        }
+
         0xFF => {
             // HALT
             Ok(DecodedInstruction {

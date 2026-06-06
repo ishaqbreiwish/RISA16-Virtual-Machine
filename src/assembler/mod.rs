@@ -201,6 +201,20 @@ pub fn assemble(src: &str) -> Result<Vec<u8>, String> {
                 bytecode.push(addr_lo);
             }
 
+            "draw" => {
+                bytecode.push(0x0B);
+                if line_tokens.len() - idx != 4 {
+                    return Err("draw expects 3 operands".into());
+                }
+                bytecode.push(parse_register(&line_tokens[idx + 1])?);
+                bytecode.push(parse_register(&line_tokens[idx + 2])?);
+                let imm = parse_u16(&line_tokens[idx + 3])?;
+                if imm > 255 {
+                    return Err("draw brightness must be 0–255".into());
+                }
+                bytecode.push(imm as u8);
+            }
+
             "halt" => {
                 bytecode.push(0xFF);
             }
@@ -225,6 +239,7 @@ fn find_instr_length(mut instruction: String) -> Result<u16, String> {
         "jmp" => Ok(3),
         "jmpz" => Ok(3),
         "jmpnz" => Ok(3),
+        "draw" => Ok(4),
         "halt" => Ok(1),
         _ => return Err(format!("ERROR: Unknown Operand: {}", instruction)),
     }

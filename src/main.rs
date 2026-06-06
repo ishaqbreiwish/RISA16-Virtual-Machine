@@ -1,19 +1,60 @@
+use minifb::{Key, Window, WindowOptions};
 use risa16::assembler::assemble;
 use risa16::vm::{State, VM};
 
+const WIDTH: usize = 32;
+const HEIGHT: usize = 32;
+const SCALE: usize = 12;
+
 fn main() {
     let src = r#"
-        movimm r0 10000
-        movimm r1 1
-        movimm r2 0
-        movimm r3 0x0100
+        // Draw a white border around the 32x32 framebuffer
+        movimm r2 0   // x
+        movimm r3 0   // y
 
-    loop:
-        sub r0 r1
-        cmp r0 r2
-        store 0x0100 r0
-        load r4 0x0100
-        jmpnz loop
+        // top row (y=0, x=0..31)
+        movimm r3 0
+    top:
+        draw r2 r3 255
+        movimm r1 1
+        add r2 r1
+        movimm r1 31
+        cmp r2 r1
+        jmpnz top
+
+        // bottom row (y=31, x=0..31)
+        movimm r2 0
+        movimm r3 31
+    bottom:
+        draw r2 r3 255
+        movimm r1 1
+        add r2 r1
+        movimm r1 32
+        cmp r2 r1
+        jmpnz bottom
+
+        // left column (x=0, y=0..31)
+        movimm r2 0
+        movimm r3 0
+    left:
+        draw r2 r3 255
+        movimm r1 1
+        add r3 r1
+        movimm r1 32
+        cmp r3 r1
+        jmpnz left
+
+        // right column (x=31, y=0..31)
+        movimm r2 31
+        movimm r3 0
+    right:
+        draw r2 r3 255
+        movimm r1 1
+        add r3 r1
+        movimm r1 32
+        cmp r3 r1
+        jmpnz right
+
         halt
     "#;
 
@@ -21,27 +62,26 @@ fn main() {
 
     let mut vm = VM::new();
     vm.memory.data[..bytes.len()].copy_from_slice(&bytes);
-
     while vm.state == State::RUNNING {
         vm.step();
     }
 
-    println!("==== RISA16 Benchmark Results ====");
-    println!("Final r0 value: {}", vm.cpu.registers[0]);
-    println!("Total instructions executed: {}", vm.instruction_count);
+    // convert grayscale framebuffer to u32 ARGB for minifb
+    let buffer: Vec<u32> = vm.framebuffer.pixels.iter()
+        .map(|&p| {
+            let v = p as u32;
+            0xFF000000 | (v << 16) | (v << 8) | v
+        })
+        .collect();
 
-    println!("\nInstruction mix:");
-    for (opcode, count) in vm.opcode_counts.iter().enumerate() {
-        if *count > 0 {
-            println!("  opcode 0x{:02X}: {}", opcode, count);
-        }
+    let mut window = Window::new(
+        "RISA-16 Framebuffer",
+        WIDTH * SCALE,
+        HEIGHT * SCALE,
+        WindowOptions::default(),
+    ).expect("failed to create window");
+
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
     }
-
-    println!("\nFlags:");
-    println!("  Zero flag: {}", vm.zero_flag);
-    println!("  Carry flag: {}", vm.carry_flag);
-
-    println!("\nMemory check:");
-    println!("  MEM[0x0100] = {:02X}", vm.memory.data[0x0100]);
-    println!("  MEM[0x0101] = {:02X}", vm.memory.data[0x0101]);
 }

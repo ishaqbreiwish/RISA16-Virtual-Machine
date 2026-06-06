@@ -1,7 +1,7 @@
 use crate::cpu::CPU;
 use crate::decoder::{DecodedInstruction, decode};
 use crate::instructions::Instruction;
-
+use crate::graphics::Framebuffer;
 use crate::memory::Memory;
 
 #[derive(PartialEq, Debug)]
@@ -12,6 +12,7 @@ pub enum State {
 
 pub struct VM {
     pub cpu: CPU,
+    pub framebuffer: Framebuffer,
     pub memory: Memory,
     pub zero_flag: bool,
     pub carry_flag: bool,
@@ -24,6 +25,7 @@ impl VM {
     pub fn new() -> Self {
         Self {
             cpu: CPU::new(),
+            framebuffer: Framebuffer::new(32, 32),
             memory: Memory::new(),
             zero_flag: false,
             carry_flag: false,
@@ -202,6 +204,10 @@ impl VM {
                     return;
                 }
 
+                if addr >= 0x0C00 && addr <= 0x0FFF {
+                    self.framebuffer.pixels[(addr - 0x0C00) as usize] = self.cpu.registers[reg as usize] as u8;
+                }
+
                 let reg_value: u16 = self.cpu.registers[reg as usize];
                 self.memory.data[addr as usize] = (reg_value >> 8) as u8; // move 8 bits to the right then u8 takes lowest 8 bytes
                 self.memory.data[(addr + 1) as usize] = reg_value as u8; // u8 will already take lower 8 bytes
@@ -224,6 +230,17 @@ impl VM {
                 let memory_value: u16 = (self.memory.data[addr as usize] as u16) << 8
                     | (self.memory.data[(addr + 1) as usize]) as u16;
                 self.cpu.registers[reg as usize] = memory_value;
+            }
+
+            Instruction::Draw { reg_x, reg_y, imm } => {
+                let x = self.cpu.registers[reg_x as usize] as usize;
+                let y = self.cpu.registers[reg_y as usize] as usize;
+                if x >= 32 || y >= 32 {
+                    eprintln!("Error: Draw coordinates out of bounds");
+                    self.state = State::HALTED;
+                    return;
+                }
+                self.framebuffer.pixels[y * 32 + x] = imm;
             }
 
             Instruction::Halt => {

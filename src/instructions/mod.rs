@@ -10,5 +10,6 @@ pub enum Instruction {
     Jump { addr: u16 },                // 0x08
     JumpZ { addr: u16 },               // 0x09
     JumpNZ { addr: u16 },              // 0x0A
+    Draw { reg_x: u8, reg_y: u8, imm: u8 }, // 0x0B
     Halt,                              // 0xFF
 }

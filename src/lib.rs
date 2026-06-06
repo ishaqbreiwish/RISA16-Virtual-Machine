@@ -4,7 +4,7 @@ pub mod decoder;
 pub mod instructions;
 pub mod memory;
 pub mod vm;
-
+pub mod graphics;
 use wasm_bindgen::prelude::*;
 use assembler::assemble;
 use vm::{State, VM};
@@ -31,12 +31,15 @@ pub fn run(src: &str) -> String {
         .map(|(i, v)| format!(r#""r{}":{}"#, i, v))
         .collect();
 
+    let fb: Vec<String> = vm.framebuffer.pixels.iter().map(|p| p.to_string()).collect();
+
     format!(
-        r#"{{"registers":{{{}}}, "zero_flag":{}, "carry_flag":{}, "instruction_count":{}, "halted":{}}}"#,
+        r#"{{"registers":{{{}}}, "zero_flag":{}, "carry_flag":{}, "instruction_count":{}, "halted":{}, "framebuffer":[{}]}}"#,
         regs.join(","),
         vm.zero_flag,
         vm.carry_flag,
         vm.instruction_count,
         vm.state == State::HALTED,
+        fb.join(","),
     )
 }
