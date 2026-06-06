@@ -273,6 +273,14 @@
     .stats .highlight { color: var(--stat-val); }
     .halted { color: var(--flag-on); }
     .capped { color: var(--stat-val); }
+
+    #screen {
+      display: block;
+      width: 192px;
+      height: 192px;
+      image-rendering: pixelated;
+      border: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -356,7 +364,11 @@
   <div class="pane">
     <div class="pane-header">Output</div>
     <div class="output" id="output">
-      <span class="placeholder">Run some assembly to see output.</span>
+      <div id="results"><span class="placeholder">Run some assembly to see output.</span></div>
+      <div class="section" id="screen-section" style="display:none">
+        <div class="section-title">Screen</div>
+        <canvas id="screen" width="32" height="32"></canvas>
+      </div>
     </div>
   </div>
 </div>
@@ -409,9 +421,13 @@
   import init, { run } from './pkg/risa16.js';
   await init();
 
-  const editor = document.getElementById('editor');
-  const output = document.getElementById('output');
-  const status = document.getElementById('status');
+  const editor        = document.getElementById('editor');
+  const output        = document.getElementById('output');
+  const results       = document.getElementById('results');
+  const status        = document.getElementById('status');
+  const screenSection = document.getElementById('screen-section');
+  const canvas        = document.getElementById('screen');
+  const ctx           = canvas.getContext('2d');
 
   editor.value =
 `movimm r0 10
@@ -428,9 +444,23 @@ loop:
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  function drawFramebuffer(pixels) {
+    const imageData = ctx.createImageData(32, 32);
+    for (let i = 0; i < 1024; i++) {
+      const v = pixels[i] ?? 0;
+      imageData.data[i * 4 + 0] = v;
+      imageData.data[i * 4 + 1] = v;
+      imageData.data[i * 4 + 2] = v;
+      imageData.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    screenSection.style.display = '';
+  }
+
   function render(src) {
     if (!src.trim()) {
-      output.innerHTML = '<span class="placeholder">Write some assembly to see output.</span>';
+      screenSection.style.display = 'none';
+      results.innerHTML = '<span class="placeholder">Write some assembly to see output.</span>';
       status.textContent = '';
       return;
     }
@@ -439,15 +469,18 @@ loop:
     try {
       result = JSON.parse(run(src));
     } catch (e) {
-      output.innerHTML = `<div class="error">Internal error: ${escapeHtml(String(e))}</div>`;
+      results.innerHTML = `<div class="error">Internal error: ${escapeHtml(String(e))}</div>`;
       return;
     }
 
     if (result.error) {
-      output.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+      results.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+      screenSection.style.display = 'none';
       status.textContent = 'error';
       return;
     }
+
+    if (result.framebuffer) drawFramebuffer(result.framebuffer);
 
     const regsHtml = Object.entries(result.registers).map(([name, val]) => {
       const hex = '0x' + val.toString(16).padStart(4, '0').toUpperCase();
@@ -458,7 +491,7 @@ loop:
     const zFlag = result.zero_flag;
     const cFlag = result.carry_flag;
 
-    output.innerHTML = `
+    results.innerHTML = `
       <div class="section">
         <div class="section-title">Registers</div>
         <div class="registers">${regsHtml}</div>
