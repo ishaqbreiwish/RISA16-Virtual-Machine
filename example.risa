@@ -1,0 +1,11 @@
+// Count down from 5 to 0, then halt
+
+movimm r0 5      // counter
+movimm r1 1      // decrement
+movimm r2 0      // zero constant
+
+loop:
+    sub r0 r1
+    cmp r0 r2
+    jmpnz loop
+    halt
