@@ -1,6 +1,6 @@
-# RISA16 Virtual Machine
+# RISA Virtual Machine
 
-RISA16 is a custom 16-bit virtual machine implemented in Rust.
+RISA is a custom 16-bit virtual machine implemented in Rust.
 The project includes a complete toolchain consisting of a formally defined instruction set architecture (ISA), a two-pass assembler, a bytecode decoder, and a deterministic execution engine.
 
 The project focuses on correctness, safety, and testability, and was built from first principles to model a realistic virtual machine architecture at a small scale.
@@ -9,7 +9,7 @@ The project focuses on correctness, safety, and testability, and was built from 
 
 ## Project Overview
 
-RISA16 models a simple 16-bit CPU with a fixed register file, flags, and flat memory. Programs are written in a custom assembly language, assembled into bytecode, decoded at runtime, and executed instruction by instruction by the virtual machine.
+RISA models a simple 16-bit CPU with a fixed register file, flags, and flat memory. Programs are written in a custom assembly language, assembled into bytecode, decoded at runtime, and executed instruction by instruction by the virtual machine.
 
 The project is structured to mirror real systems design:
 
@@ -38,7 +38,7 @@ All memory accesses, register accesses, and jumps are bounds-checked. Invalid op
 
 ## Instruction Set
 
-RISA16 defines a compact instruction set covering:
+RISA defines a compact instruction set covering:
 
 * data movement
 * arithmetic
@@ -65,7 +65,7 @@ The complete instruction set, binary formats, and execution semantics are define
 
 ## Assembler
 
-The assembler translates RISA16 assembly into bytecode.
+The assembler translates RISA assembly into bytecode.
 
 Key properties:
 
@@ -117,7 +117,7 @@ cargo test
 
 ### Assemble and Run a Program
 
-Assembly programs can be written using the RISA16 instruction set defined in `SPEC.md`.
+Assembly programs can be written using the RISA instruction set defined in `SPEC.md`.
 
 The project includes a command-line entry point that assembles a source file and executes it in the virtual machine:
 
@@ -179,5 +179,5 @@ cargo test
 
 ## Status
 
-The RISA16 virtual machine, assembler, and decoder are complete and fully tested.
+The RISA virtual machine, assembler, and decoder are complete and fully tested.
 Future extensions may include a simple graphics subsystem.
